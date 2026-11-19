@@ -240,7 +240,7 @@ class LandingPageTest extends TestCase
         $html = $this->get('/en')->assertOk()->getContent();
 
         $this->assertStringContainsString('<meta property="og:site_name" content="Al Rasikhoon Real Estate">', $html);
-        $this->assertStringContainsString('<link rel="icon" href="/favicon.svg"', $html);
+        $this->assertStringContainsString('<link rel="icon" href="/favicon.ico"', $html);
         $this->assertStringNotContainsString('const Ziggy', $html); // route list is not exposed on the public page
 
         preg_match('#<script type="application/ld\+json">(.+?)</script>#s', $html, $m);
