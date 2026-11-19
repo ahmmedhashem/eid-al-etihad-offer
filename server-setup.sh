@@ -24,6 +24,16 @@ DB=${U}_${SLUG:0:30}
 DB_USER=${U}_${SLUG:0:16}
 as_user() { sudo -u "$U" bash -c "cd $APP && $*"; }
 step() { echo; echo "==> $*"; }
+# Keeps the server-render (SSR) process running: cPanel has no Supervisor, so a per-minute cron
+# starts it if it isn't running. Cron's PATH is minimal, so give it node's full location.
+# If SSR is ever down the page still works (it renders in the browser instead).
+install_ssr_watchdog() {
+    local node_dir cron
+    node_dir=$(dirname "$(as_user 'command -v node')")
+    cron="* * * * * cd $APP && export PATH=$node_dir:/usr/local/bin:/usr/bin:/bin && (pgrep -u $U -f 'bootstrap/ssr/ssr.js' >/dev/null || nohup $PHP artisan inertia:start-ssr >> storage/logs/ssr.log 2>&1 &)"
+    ( crontab -u "$U" -l 2>/dev/null | grep -v "$APP.*inertia:start-ssr"; echo "$cron" ) | crontab -u "$U" -
+}
+
 trap 'echo; echo "!! Setup stopped at line $LINENO. Send this output over." >&2' ERR
 
 # Calls a cPanel API function and stops with its error message if it fails
@@ -78,10 +88,7 @@ as_user "[ -L public/storage ] || $PHP artisan storage:link"
 as_user "$PHP artisan optimize"
 
 step "Keeping the server-render (SSR) process running"
-# cPanel has no Supervisor: a per-minute cron starts the SSR process if it isn't running.
-# If it is ever down, the page still works (it renders in the browser instead).
-SSR_CRON="* * * * * cd $APP && (pgrep -u $U -f 'bootstrap/ssr/ssr.js' >/dev/null || nohup $PHP artisan inertia:start-ssr >> storage/logs/ssr.log 2>&1 &)"
-( crontab -u "$U" -l 2>/dev/null | grep -v "$APP.*inertia:start-ssr"; echo "$SSR_CRON" ) | crontab -u "$U" -
+install_ssr_watchdog
 
 step "Serving $DOMAIN with PHP 8.3"
 # New domains get cPanel's default PHP, which is older than this app needs.

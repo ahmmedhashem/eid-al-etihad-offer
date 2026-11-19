@@ -1,3 +1,7 @@
+# Serve the app for "/" too (some cPanel vhosts don't list index.php as a directory index,
+# which made "/" answer 403 while still showing the page).
+DirectoryIndex index.php
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
