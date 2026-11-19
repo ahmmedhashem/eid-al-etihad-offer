@@ -37,7 +37,7 @@ bash /home/alrasikhoon/eid-al-etihad-offer/server-setup.sh eid-al-etihad-offer.a
 - Creates the MySQL database and user (visible in cPanel) and writes a production `.env`.
 - Installs packages and builds the browser and server-render bundles.
 - Runs the migrations.
-- Adds a cron watchdog that keeps the server-render process running.
+- Installs a systemd service (`ssr-eid-al-etihad-offer`) that keeps the server-render process running and restarts it on crash or reboot.
 - Sets PHP 8.3, points the subdomain at `public/`, and requests SSL.
 - Asks for the admin password.
 
@@ -47,7 +47,7 @@ bash /home/alrasikhoon/eid-al-etihad-offer/server-setup.sh eid-al-etihad-offer.a
 bash /home/alrasikhoon/eid-al-etihad-offer/deploy.sh
 ```
 
-`deploy.sh` puts the site in maintenance mode, pulls, installs, rebuilds, migrates, caches, and restarts the server-render process. It keeps cPanel's PHP settings in `public/.htaccess`. PHP upload limits for dashboard images live in `public/.user.ini`.
+`deploy.sh` puts the site in maintenance mode, pulls, installs, rebuilds, migrates, caches, and restarts the server-render service. Check it with `systemctl status ssr-eid-al-etihad-offer`. It keeps cPanel's PHP settings in `public/.htaccess`. PHP upload limits for dashboard images live in `public/.user.ini`.
 
 ### Go-live checklist
 

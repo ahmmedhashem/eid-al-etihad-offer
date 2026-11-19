@@ -8,14 +8,37 @@ APP=$(cd "$(dirname "$0")" && pwd)
 U=$(stat -c %U "$APP")
 PHP=/opt/cpanel/ea-php83/root/usr/bin/php
 as_user() { sudo -u "$U" bash -c "cd $APP && $*"; }
-# Keeps the server-render (SSR) process running: cPanel has no Supervisor, so a per-minute cron
-# starts it if it isn't running. Cron's PATH is minimal, so give it node's full location.
-# If SSR is ever down the page still works (it renders in the browser instead).
-install_ssr_watchdog() {
-    local node_dir cron
-    node_dir=$(dirname "$(as_user 'command -v node')")
-    cron="* * * * * cd $APP && export PATH=$node_dir:/usr/local/bin:/usr/bin:/bin && (pgrep -u $U -f 'bootstrap/ssr/ssr.js' >/dev/null || nohup $PHP artisan inertia:start-ssr >> storage/logs/ssr.log 2>&1 &)"
-    ( crontab -u "$U" -l 2>/dev/null | grep -v "$APP.*inertia:start-ssr"; echo "$cron" ) | crontab -u "$U" -
+# Server-side rendering (SSR) runs as a systemd service: the cPanel user's cron runs inside
+# jailshell, where a long-running Node process doesn't survive. The service runs as the cPanel
+# user, restarts on crash and starts on boot. If it's ever down, the page still works (it renders
+# in the browser instead).
+install_ssr_service() {
+    local name node
+    name="ssr-$(basename "$APP")"
+    node=$(command -v node)
+    cat > "/etc/systemd/system/$name.service" <<UNIT
+[Unit]
+Description=Inertia SSR for $(basename "$APP")
+After=network.target
+
+[Service]
+User=$U
+WorkingDirectory=$APP
+ExecStart=$node $APP/bootstrap/ssr/ssr.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    systemctl daemon-reload
+    systemctl enable "$name" >/dev/null 2>&1
+    systemctl restart "$name"
+    # Remove the earlier cron-based watchdog, if present.
+    crontab -u "$U" -l 2>/dev/null | grep -v "$APP.*inertia:start-ssr" | crontab -u "$U" - || true
+    sleep 2
+    systemctl is-active --quiet "$name" && echo "SSR service $name is running" || { echo "!! SSR service $name failed to start:" >&2; journalctl -u "$name" -n 20 --no-pager >&2; }
 }
 
 # Everything runs inside main(), so bash has read the whole script before `git pull`
@@ -35,9 +58,8 @@ main() {
     as_user "npm ci --no-audit --no-fund && npm run build:ssr"
     as_user "$PHP artisan migrate --force"
     as_user "$PHP artisan optimize"
-    # Restart server-side rendering on the new build: the cron watchdog starts it again within a minute.
-    install_ssr_watchdog
-    as_user "$PHP artisan inertia:stop-ssr >/dev/null 2>&1 || true"
+    # Restart server-side rendering on the new build.
+    install_ssr_service
 
     echo "Deployed $(as_user 'git log --oneline -1')"
 }
