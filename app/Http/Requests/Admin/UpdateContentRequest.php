@@ -13,6 +13,37 @@ class UpdateContentRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    /**
+     * People paste tracking IDs in many shapes: lowercase, with spaces, or Google's/Meta's whole
+     * installation snippet. Keep just the ID so the strict rules below accept it.
+     */
+    protected function prepareForValidation(): void
+    {
+        $content = $this->input('content');
+        if (! is_array($content) || ! is_array($content['tracking'] ?? null)) {
+            return;
+        }
+        $t = $content['tracking'];
+        $extract = function (mixed $value, string $pattern, bool $upper = false): mixed {
+            if (! is_string($value) || trim($value) === '') {
+                return $value;
+            }
+            $value = trim($upper ? strtoupper($value) : $value);
+
+            return preg_match($pattern, $value, $m) ? ($m[1] ?? $m[0]) : $value;
+        };
+
+        $t['gtm_id'] = $extract($t['gtm_id'] ?? null, '/GTM-[A-Z0-9]{4,12}/', upper: true);
+        $t['meta_pixel_id'] = $extract($t['meta_pixel_id'] ?? null, '/\d{6,20}/');
+        $t['tiktok_pixel_id'] = is_string($t['tiktok_pixel_id'] ?? null) && str_contains($t['tiktok_pixel_id'], 'ttq.load')
+            ? $extract($t['tiktok_pixel_id'], "/ttq\.load\(\s*['\"]([A-Za-z0-9]+)['\"]/")
+            : $extract($t['tiktok_pixel_id'] ?? null, '/^[A-Z0-9]+$/', upper: true);
+        $t['snap_pixel_id'] = $extract($t['snap_pixel_id'] ?? null, '/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i');
+
+        $content['tracking'] = $t;
+        $this->merge(['content' => $content]);
+    }
+
     public function rules(): array
     {
         $image = ['nullable', 'string', 'max:500', 'regex:#^/storage/uploads/[A-Za-z0-9._-]+$#'];
@@ -57,7 +88,7 @@ class UpdateContentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'content.tracking.gtm_id.regex' => 'GTM ID must look like GTM-XXXXXXX.',
+            'content.tracking.gtm_id.regex' => 'Couldn’t find a Google Tag Manager ID here. Paste the ID shown at the top of GTM, e.g. GTM-ABC1234.',
             'content.tracking.meta_pixel_id.regex' => 'Meta Pixel ID must be digits only.',
             'content.tracking.tiktok_pixel_id.regex' => 'TikTok Pixel ID must be uppercase letters and digits.',
             'content.location.map_embed_url.starts_with' => 'Use the Google Maps "Embed a map" URL (https://www.google.com/maps/embed?...).',

@@ -193,6 +193,35 @@ class LandingPageTest extends TestCase
         $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasErrors('content.plots.image');
     }
 
+    public function test_pasted_tracking_ids_are_cleaned_up_before_saving(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $save = function (array $tracking) {
+            $content = LandingContent::get();
+            $content['tracking'] = array_merge($content['tracking'], $tracking);
+
+            return $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $content]);
+        };
+
+        // lowercase + spaces
+        $save(['gtm_id' => '  gtm-abc1234 '])->assertSessionHasNoErrors();
+        $this->assertSame('GTM-ABC1234', LandingContent::get()['tracking']['gtm_id']);
+
+        // Google's full installation snippet, Meta's full pixel snippet
+        $gtmSnippet = "<!-- Google Tag Manager --><script>(function(w,d,s,l,i){w[l]=w[l]||[];})(window,document,'script','dataLayer','GTM-XYZ9876');</script>";
+        $metaSnippet = "<script>!function(f,b,e,v,n,t,s){n.version='2.0';}(window);fbq('init', '123456789012345');fbq('track', 'PageView');</script>";
+        $save(['gtm_id' => $gtmSnippet, 'meta_pixel_id' => $metaSnippet])->assertSessionHasNoErrors();
+        $tracking = LandingContent::get()['tracking'];
+        $this->assertSame('GTM-XYZ9876', $tracking['gtm_id']);
+        $this->assertSame('123456789012345', $tracking['meta_pixel_id']);
+
+        // Saved IDs reach the page on both languages
+        $this->get('/en')->assertSee("'dataLayer','GTM-XYZ9876'", false)->assertSee("fbq('init','123456789012345')", false);
+
+        // Something that isn't an ID at all is still refused
+        $save(['gtm_id' => 'my container'])->assertSessionHasErrors('content.tracking.gtm_id');
+    }
+
     public function test_lead_form_section_cannot_be_hidden(): void
     {
         $this->actingAs(User::factory()->create());

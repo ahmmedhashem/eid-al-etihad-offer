@@ -474,6 +474,8 @@ export default function ContentEditor({ locale, content: initial, amenityIcons, 
                     setContent(fresh);
                     setSaved(snapshot(fresh));
                 },
+                // Make a failed save impossible to miss: jump to the error summary at the top.
+                onError: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
                 onFinish: () => setSaving(false),
             },
         );
@@ -556,8 +558,30 @@ export default function ContentEditor({ locale, content: initial, amenityIcons, 
                 </div>
 
                 {Object.keys(errors).length > 0 && (
-                    <div className="border-destructive/40 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm">
-                        Some fields need attention — they’re marked in red. Nothing was saved.
+                    <div role="alert" className="border-destructive/40 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm">
+                        <p className="font-semibold">Nothing was saved. Please fix:</p>
+                        <ul className="mt-1.5 flex flex-col gap-1">
+                            {Object.entries(errors).map(([key, message]) => {
+                                const path = key.replace(/^content\./, '');
+                                const owner = tabs.find((t) => t.fields.some((f) => path === f.key || path.startsWith(`${f.key}.`)));
+                                return (
+                                    <li key={key}>
+                                        {owner ? (
+                                            <button
+                                                type="button"
+                                                className="font-medium underline underline-offset-2"
+                                                onClick={() => setTab(owner.key)}
+                                            >
+                                                {owner.title}
+                                            </button>
+                                        ) : (
+                                            <span className="font-medium">{path}</span>
+                                        )}
+                                        : {message}
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     </div>
                 )}
 
