@@ -60,9 +60,12 @@
         @endif
 
         @if ($isLanding && $heroImage)
-            {{-- Largest element on the page: start downloading it before CSS/JS are parsed --}}
-            <link rel="preload" as="image" href="{{ $heroImage }}" fetchpriority="high"
-                @if ($heroSrcset = \App\Support\ImageOptimizer::srcset($heroImage)) imagesrcset="{{ $heroSrcset }}" imagesizes="100vw" @endif>
+            {{-- Largest element on the page: start downloading it before CSS/JS are parsed (phone version if set) --}}
+            @php $heroMobile = $landing['hero_image_mobile'] ?? null; @endphp
+            @foreach (array_filter([[$heroImage, $heroMobile ? '(min-width: 768px)' : null], [$heroMobile, '(max-width: 767px)']], fn ($i) => $i[0]) as [$src, $media])
+                <link rel="preload" as="image" href="{{ $src }}" fetchpriority="high" @if ($media) media="{{ $media }}" @endif
+                    @if ($set = \App\Support\ImageOptimizer::srcset($src)) imagesrcset="{{ $set }}" imagesizes="100vw" @endif>
+            @endforeach
         @endif
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

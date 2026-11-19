@@ -222,6 +222,32 @@ class LandingPageTest extends TestCase
         $save(['gtm_id' => 'my container'])->assertSessionHasErrors('content.tracking.gtm_id');
     }
 
+    public function test_mobile_hero_photo_is_per_language_and_only_accepts_uploads(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $ar = LandingContent::get('ar');
+        $ar['hero']['image_mobile'] = '/storage/uploads/hero-ar-m-1080w.webp';
+        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasNoErrors();
+
+        $this->assertSame('/storage/uploads/hero-ar-m-1080w.webp', LandingContent::get('ar')['hero']['image_mobile']);
+        $this->assertNull(LandingContent::get('en')['hero']['image_mobile']); // not shared
+
+        $ar['hero']['image_mobile'] = 'https://evil.example/x.jpg';
+        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasErrors('content.hero.image_mobile');
+    }
+
+    public function test_content_cached_before_a_new_field_existed_is_never_served(): void
+    {
+        // Simulate a deploy: the cache still holds content built with an older set of fields.
+        $old = LandingContent::get('ar');
+        unset($old['hero']['image_mobile']);
+        Cache::forever('landing_content_ar', $old);
+
+        $this->get('/')->assertOk();
+        $this->assertArrayHasKey('image_mobile', LandingContent::get('ar')['hero']);
+    }
+
     public function test_lead_form_section_cannot_be_hidden(): void
     {
         $this->actingAs(User::factory()->create());

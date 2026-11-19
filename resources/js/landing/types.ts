@@ -25,6 +25,10 @@ export interface LandingContent {
         chips: string[];
         cta_label: string;
         image: string | null;
+        image_mobile: string | null;
+        /** [width, height] added by the server for uploaded photos */
+        image_size?: [number, number] | null;
+        image_mobile_size?: [number, number] | null;
     };
     stats: { value: string; label: string }[];
     offers: {

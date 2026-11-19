@@ -39,6 +39,7 @@ class EnglishContent
                 'chips' => ['35% off cash', 'No down payment', 'G+2 permit', 'No bank'],
                 'cta_label' => 'Get prices & plot sizes',
                 'image' => null,
+                'image_mobile' => null,
             ],
             'stats' => [
                 ['value' => 'Since 2002', 'label' => 'In the real estate market'],

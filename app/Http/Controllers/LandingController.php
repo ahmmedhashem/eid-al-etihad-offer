@@ -21,6 +21,9 @@ class LandingController extends Controller
     private function show(string $locale): Response
     {
         $content = LandingContent::forPublic($locale);
+        // Real pixel sizes of the hero photos, so the page reserves their space before they load (no layout jump).
+        $content['hero']['image_size'] = $this->imageSize($content['hero']['image']);
+        $content['hero']['image_mobile_size'] = $this->imageSize($content['hero']['image_mobile']);
         $alternates = ['ar' => url('/'), 'en' => url('/en')];
 
         return Inertia::render('landing', [
@@ -37,10 +40,22 @@ class LandingController extends Controller
                     'tracking' => $content['tracking'],
                     'og_image' => $content['seo']['og_image'] ?: $content['hero']['image'],
                     'hero_image' => $content['hero']['image'],
+                    'hero_image_mobile' => $content['hero']['image_mobile'],
                     'site_name' => $content['brand']['name'],
                     'schema' => $this->schema($content, $locale, $alternates),
                 ],
             ]);
+    }
+
+    /** [width, height] of an uploaded image, or null. */
+    private function imageSize(?string $url): ?array
+    {
+        if (! $url || ! str_starts_with($url, '/storage/uploads/')) {
+            return null;
+        }
+        $size = @getimagesize(public_path($url));
+
+        return $size ? [$size[0], $size[1]] : null;
     }
 
     /**

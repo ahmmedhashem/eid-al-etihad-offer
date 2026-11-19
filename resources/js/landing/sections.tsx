@@ -40,7 +40,10 @@ function LanguageSwitch({ className }: { className?: string }) {
                 e.preventDefault();
                 window.location.href = otherUrl + window.location.search;
             }}
-            className={cn('text-ink/80 hover:text-ink rounded-md px-2 py-1 text-[15px] font-semibold underline-offset-4 hover:underline', className)}
+            className={cn(
+                'text-ink/80 hover:text-ink rounded-md px-2 py-1 text-[15px] font-semibold whitespace-nowrap underline-offset-4 hover:underline',
+                className,
+            )}
         >
             {ui.switchLabel}
         </a>
@@ -51,11 +54,13 @@ const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 function BrandLogo({ content, light }: P & { light?: boolean }) {
     const b = content.brand;
-    if (b.logo) return <img src={b.logo} alt={b.name} className="h-11 w-auto" />;
+    if (b.logo) return <img src={b.logo} alt={b.name} className="h-10 w-auto sm:h-11" />;
     return (
         <div className="flex flex-col leading-tight">
-            <span className={cn('text-xl font-extrabold sm:text-[26px]', light ? 'text-white' : 'text-ink')}>{b.name}</span>
-            <span className={cn('font-en text-[10px] font-semibold tracking-wide', light ? 'text-ochre' : 'text-terra-dark')}>{b.name_en}</span>
+            <span className={cn('text-lg font-extrabold whitespace-nowrap sm:text-[22px]', light ? 'text-white' : 'text-ink')}>{b.name}</span>
+            <span className={cn('font-en text-[10px] font-semibold tracking-wide whitespace-nowrap', light ? 'text-ochre' : 'text-terra-dark')}>
+                {b.name_en}
+            </span>
         </div>
     );
 }
@@ -75,36 +80,37 @@ export function Header({ content }: P) {
 
     return (
         <header className={cn('border-line bg-cream/95 sticky top-0 z-40 border-b backdrop-blur transition-shadow', scrolled && 'shadow-md')}>
-            <Container className="flex h-[76px] items-center justify-between gap-6">
+            <Container className="flex h-[76px] items-center justify-between gap-4 xl:gap-6">
                 {/* Co-branding lock-up: company logo | divider | official Eid Al Etihad logo (uploaded in the dashboard) */}
-                <div className="flex items-center gap-4">
+                <div className="flex shrink-0 items-center gap-3 sm:gap-4">
                     <BrandLogo content={content} />
                     {content.campaign.cobrand_logo && (
                         <>
-                            <span className="bg-ink/30 h-10 w-px" aria-hidden />
-                            <img src={content.campaign.cobrand_logo} alt={ui.cobrandAlt} className="h-11 w-auto" />
+                            <span className="bg-ink/30 h-9 w-px" aria-hidden />
+                            <img src={content.campaign.cobrand_logo} alt={ui.cobrandAlt} className="h-9 w-auto sm:h-11" />
                         </>
                     )}
                 </div>
-                <nav className="hidden items-center gap-8 lg:flex" aria-label={ui.navLabel}>
+                {/* Full nav only where it fits on one line; smaller screens use the CTA + language switch */}
+                <nav className="hidden items-center gap-6 xl:flex" aria-label={ui.navLabel}>
                     {navItems(ui, enabled).map((n) => (
-                        <a key={n.key} href={`#${n.key}`} className="text-ink/80 hover:text-ink text-base font-medium">
+                        <a key={n.key} href={`#${n.key}`} className="text-ink/80 hover:text-ink text-[15px] font-medium whitespace-nowrap">
                             {n.label}
                         </a>
                     ))}
                 </nav>
-                <div className="flex items-center gap-3 sm:gap-5">
+                <div className="flex shrink-0 items-center gap-3 sm:gap-4">
                     <a
                         id={TRACKING_IDS.callHeader}
                         href={telHref(content.brand.phone)}
                         onClick={() => trackCall('header', locale)}
                         dir="ltr"
-                        className="text-ink hover:text-terra hidden font-bold xl:inline"
+                        className="text-ink hover:text-terra hidden font-bold whitespace-nowrap 2xl:inline"
                     >
                         {content.brand.phone}
                     </a>
                     <LanguageSwitch />
-                    <CtaButton onClick={goToForm} className="hidden min-h-11 px-5 py-2 text-[15px] sm:inline-flex">
+                    <CtaButton onClick={goToForm} className="hidden min-h-11 px-5 py-2 text-[15px] whitespace-nowrap sm:inline-flex">
                         {ui.book}
                     </CtaButton>
                 </div>
@@ -114,6 +120,46 @@ export function Header({ content }: P) {
 }
 
 export function Hero({ content }: P) {
+    const h = content.hero;
+    // With a hero photo, the photo IS the hero (its text is part of the design): show it whole, never cropped.
+    if (h.image) {
+        const title = h.title.replace(/\s*\n\s*/g, ' ');
+        const [w, hgt] = h.image_size ?? [2560, 1440];
+        const mobileSet = h.image_mobile ? (srcSetFor(h.image_mobile) ?? h.image_mobile) : null;
+        return (
+            <section className="bg-slate relative">
+                {/* The visible text is inside the photo; keep a real headline for Google and screen readers. */}
+                <h1 className="sr-only">{title}</h1>
+                <picture>
+                    {mobileSet && (
+                        <source
+                            media="(max-width: 767px)"
+                            srcSet={mobileSet}
+                            sizes="100vw"
+                            width={h.image_mobile_size?.[0] ?? 1080}
+                            height={h.image_mobile_size?.[1] ?? 1350}
+                        />
+                    )}
+                    <img
+                        src={h.image}
+                        srcSet={srcSetFor(h.image)}
+                        sizes="100vw"
+                        width={w}
+                        height={hgt}
+                        alt={title}
+                        fetchPriority="high"
+                        decoding="async"
+                        className="block h-auto w-full"
+                    />
+                </picture>
+            </section>
+        );
+    }
+    return <HeroTextFrame content={content} />;
+}
+
+/** Fallback hero (no photo uploaded yet): brand gradient with the text frame. */
+function HeroTextFrame({ content }: P) {
     const h = content.hero;
     return (
         // Full-bleed background photo filling the first screen (below the sticky header).
@@ -351,7 +397,6 @@ export function Plots({ content }: P) {
                                 {[
                                     [ui.areaFrom, it.area],
                                     [ui.permit, it.permit],
-                                    [ui.available, it.count],
                                 ].map(([k, v]) => (
                                     <div key={k} className="flex items-center justify-between border-t border-white/10 py-3.5">
                                         <dt className="text-base text-white">{k}</dt>

@@ -40,7 +40,7 @@ class LandingContent
     ];
 
     /** Fields that are legitimately null when empty; every other empty value is stored as "". */
-    private const NULLABLE_KEYS = ['logo', 'cobrand_logo', 'og_image', 'image', 'url', 'offer_ends_at'];
+    private const NULLABLE_KEYS = ['logo', 'cobrand_logo', 'og_image', 'image', 'image_mobile', 'url', 'offer_ends_at'];
 
     public static function get(string $locale = 'ar'): array
     {
@@ -109,9 +109,16 @@ class LandingContent
         return $locale === 'ar' ? 'landing' : "landing_{$locale}";
     }
 
+    /**
+     * The key includes a fingerprint of the defaults, so a deploy that adds or changes content fields
+     * never serves an older cached shape (which would miss the new keys).
+     */
     private static function cacheKey(string $locale): string
     {
-        return "landing_content_{$locale}";
+        static $fingerprint = [];
+        $fingerprint[$locale] ??= substr(md5(serialize([self::defaults('ar'), self::defaults($locale), self::SHARED])), 0, 12);
+
+        return "landing_content_{$locale}_{$fingerprint[$locale]}";
     }
 
     private static function stored(string $locale): array
@@ -259,6 +266,7 @@ class LandingContent
                 'chips' => ['خصم 35% كاش', 'بدون دفعة أولى', 'تصريح G+2', 'بدون بنك'],
                 'cta_label' => 'احصل على الأسعار والمساحات',
                 'image' => null, // per language: each page can use its own hero photo
+                'image_mobile' => null, // optional portrait version for phones (per language)
             ],
             'stats' => [
                 ['value' => 'منذ 2002', 'label' => 'خبرة في السوق العقاري'],

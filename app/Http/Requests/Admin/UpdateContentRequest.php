@@ -69,6 +69,7 @@ class UpdateContentRequest extends FormRequest
             'content.campaign.cobrand_logo' => $image,
             'content.seo.og_image' => $image,
             'content.hero.image' => $image,
+            'content.hero.image_mobile' => $image,
             'content.project.image' => $image,
             'content.plots.image' => $image,
             'content.gallery.images' => ['array', 'max:24'],
