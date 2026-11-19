@@ -6,6 +6,28 @@ import type { AmenityIcon } from './types';
 
 export const FORM_ANCHOR = 'lead-form';
 
+/**
+ * Element IDs and dataLayer events used by Google Tag Manager (see README → "Tracking with Google Tag Manager").
+ * Keep these stable: GTM triggers depend on them.
+ */
+export const TRACKING_IDS = {
+    submit: 'lead-form-submit',
+    callHeader: 'call-header',
+    callMobileBar: 'call-mobile-bar',
+    callFooter: 'call-footer',
+} as const;
+
+declare global {
+    interface Window {
+        dataLayer?: object[];
+    }
+}
+
+/** Tells GTM a phone link was tapped (event "phone_call_click"). */
+export function trackCall(callLocation: 'header' | 'mobile_bar' | 'footer', language: string) {
+    window.dataLayer?.push({ event: 'phone_call_click', call_location: callLocation, language });
+}
+
 const VARIANT_WIDTHS = [640, 1280, 1920];
 
 /**
@@ -73,8 +95,10 @@ export function CtaButton({
     type = 'button',
     disabled,
     href,
+    id,
 }: {
     children: ReactNode;
+    id?: string;
     variant?: ButtonVariant;
     className?: string;
     onClick?: () => void;
@@ -95,13 +119,13 @@ export function CtaButton({
     );
     if (href) {
         return (
-            <a href={href} className={cls} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
+            <a id={id} href={href} className={cls} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
                 {children}
             </a>
         );
     }
     return (
-        <button type={type} onClick={onClick} disabled={disabled} className={cls}>
+        <button id={id} type={type} onClick={onClick} disabled={disabled} className={cls}>
             {children}
         </button>
     );

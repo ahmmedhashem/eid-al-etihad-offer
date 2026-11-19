@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronDown, LoaderCircle } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { useLandingI18n } from './i18n';
 import type { LandingContent } from './types';
-import { CtaButton } from './ui';
+import { CtaButton, TRACKING_IDS } from './ui';
 
 const ATTR_KEY = 'lp_attribution';
 const PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'fbclid', 'ttclid'] as const;
@@ -16,7 +16,6 @@ declare global {
         fbq?: (...args: unknown[]) => void;
         ttq?: { track: (event: string, data?: object) => void };
         snaptr?: (...args: unknown[]) => void;
-        dataLayer?: object[];
     }
 }
 
@@ -49,11 +48,12 @@ function readAttribution(): Attribution {
     return attr;
 }
 
-function fireLeadEvents(location: string) {
+/** Fires only after the server accepted the lead — use this (not the button click) as the conversion. */
+function fireLeadEvents(location: string, language: string) {
     window.fbq?.('track', 'Lead');
     window.ttq?.track('SubmitForm');
     window.snaptr?.('track', 'SIGN_UP');
-    window.dataLayer?.push({ event: 'lead_submitted', form_location: location });
+    window.dataLayer?.push({ event: 'lead_submitted', form_location: location, language });
 }
 
 function Field({ label, error, children, htmlFor }: { label: string; error?: string; children: React.ReactNode; htmlFor: string }) {
@@ -117,7 +117,7 @@ export function LeadForm({
                 const flash = (page.props as { flash?: { lead_submitted?: boolean } }).flash;
                 if (flash?.lead_submitted) {
                     setDone(true);
-                    fireLeadEvents(location);
+                    fireLeadEvents(location, locale);
                     reset('name');
                 }
             },
@@ -211,7 +211,7 @@ export function LeadForm({
                         </label>
                     </div>
 
-                    <CtaButton type="submit" disabled={processing} className="w-full">
+                    <CtaButton id={TRACKING_IDS.submit} type="submit" disabled={processing} className="w-full">
                         {processing && <LoaderCircle className="size-5 animate-spin" aria-hidden />}
                         {f.submit_label}
                     </CtaButton>

@@ -108,6 +108,17 @@ The editor warns about any `[placeholder]` text still visible to visitors.
 - UTM parameters and click IDs (`gclid`, `fbclid`, `ttclid`) are saved with each lead. A visit that carries ad parameters always overrides earlier ones in the same session.
 - On a successful submission the page fires `fbq('track','Lead')`, `ttq.track('SubmitForm')`, `snaptr('track','SIGN_UP')` and `dataLayer.push({event:'lead_submitted'})`, but only for the pixels you configured.
 
+## Tracking with Google Tag Manager
+
+Add the GTM container ID under **Dashboard → Page content → SEO, pixels & alerts**. The page then sends these to GTM:
+
+| What | Element ID | dataLayer event | Extra fields |
+| --- | --- | --- | --- |
+| Lead **accepted** by the server (use this as the conversion) | submit button `lead-form-submit` | `lead_submitted` | `form_location`, `language` (`ar`/`en`) |
+| Phone link tapped | `call-header`, `call-mobile-bar`, `call-footer` | `phone_call_click` | `call_location` (`header`/`mobile_bar`/`footer`), `language` |
+
+A click on `lead-form-submit` also counts failed attempts, such as an invalid phone number. For conversions, use the `lead_submitted` event.
+
 ## Brand rules followed (Eid Al Etihad 55 guidelines)
 
 - Noto Sans Arabic (approved secondary Arabic font) and Oswald for English, with the guideline palette.

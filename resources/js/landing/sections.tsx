@@ -14,8 +14,10 @@ import {
     Lines,
     Section,
     SectionHeading,
+    TRACKING_IDS,
     goToForm,
     srcSetFor,
+    trackCall,
 } from './ui';
 
 type P = { content: LandingContent };
@@ -60,7 +62,7 @@ function BrandLogo({ content, light }: P & { light?: boolean }) {
 /* ---------------- Header + Hero ---------------- */
 
 export function Header({ content }: P) {
-    const { ui } = useLandingI18n();
+    const { ui, locale } = useLandingI18n();
     const enabled = new Set(content.sections.filter((s) => s.enabled).map((s) => s.key));
     const [scrolled, setScrolled] = useState(false);
     useEffect(() => {
@@ -91,7 +93,13 @@ export function Header({ content }: P) {
                     ))}
                 </nav>
                 <div className="flex items-center gap-3 sm:gap-5">
-                    <a href={telHref(content.brand.phone)} dir="ltr" className="text-ink hover:text-terra hidden font-bold xl:inline">
+                    <a
+                        id={TRACKING_IDS.callHeader}
+                        href={telHref(content.brand.phone)}
+                        onClick={() => trackCall('header', locale)}
+                        dir="ltr"
+                        className="text-ink hover:text-terra hidden font-bold xl:inline"
+                    >
                         {content.brand.phone}
                     </a>
                     <LanguageSwitch />
@@ -643,7 +651,7 @@ export function Faq({ content }: P) {
 
 export function Footer({ content }: P) {
     const b = content.brand;
-    const { ui } = useLandingI18n();
+    const { ui, locale } = useLandingI18n();
     const enabled = new Set(content.sections.filter((s) => s.enabled).map((s) => s.key));
     return (
         <footer className="bg-ink pt-14 pb-28 text-white md:pb-14">
@@ -663,7 +671,12 @@ export function Footer({ content }: P) {
                     </nav>
                     <div className="flex flex-col gap-2.5 text-[15px] text-white/75">
                         <p className="text-ochre font-bold">{ui.contactUs}</p>
-                        <a href={telHref(b.phone)} className="hover:text-white">
+                        <a
+                            id={TRACKING_IDS.callFooter}
+                            href={telHref(b.phone)}
+                            onClick={() => trackCall('footer', locale)}
+                            className="hover:text-white"
+                        >
                             {ui.phoneLabel} <span dir="ltr">{b.phone}</span>
                         </a>
                         {b.email && (
@@ -692,11 +705,13 @@ export function Footer({ content }: P) {
 
 /** Mobile-only bottom bar so the call / register actions are always one tap away. */
 export function MobileCtaBar({ content }: P) {
-    const { ui } = useLandingI18n();
+    const { ui, locale } = useLandingI18n();
     return (
         <div className="border-line bg-cream/95 fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t p-3 backdrop-blur md:hidden">
             <a
+                id={TRACKING_IDS.callMobileBar}
                 href={telHref(content.brand.phone)}
+                onClick={() => trackCall('mobile_bar', locale)}
                 className="border-ink/30 text-ink inline-flex min-h-12 items-center justify-center gap-2 rounded-[10px] border-[1.5px] px-5 font-bold"
                 aria-label={ui.callAria}
             >
