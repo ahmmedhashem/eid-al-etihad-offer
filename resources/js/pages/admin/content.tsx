@@ -148,6 +148,14 @@ function buildTabs(amenityIcons: string[]): { key: string; title: string; fields
                     ],
                 },
                 { type: 'text', key: 'plots.cta_label', label: 'Card button label' },
+                {
+                    type: 'image',
+                    key: 'plots.image',
+                    shared: true,
+                    label: 'Section background photo',
+                    size: { w: 2560, h: 1440, note: 'wide landscape; shown behind a blue tint, so busy photos are fine' },
+                    help: 'Optional. Leave empty for the plain blue background.',
+                },
             ],
         },
         {

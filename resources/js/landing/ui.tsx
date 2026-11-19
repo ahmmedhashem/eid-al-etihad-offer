@@ -53,11 +53,31 @@ export function Container({ className, children }: { className?: string; childre
     return <div className={cn('mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-0', className)}>{children}</div>;
 }
 
-export function Section({ id, className, children }: { id?: string; className?: string; children: ReactNode }) {
+export function Section({ id, className, children, background }: { id?: string; className?: string; children: ReactNode; background?: ReactNode }) {
     return (
-        <section id={id} className={cn('scroll-mt-20 py-16 md:py-24', className)}>
+        <section id={id} className={cn('scroll-mt-20 py-16 md:py-24', background && 'relative isolate overflow-hidden', className)}>
+            {background}
             <Container>{children}</Container>
         </section>
+    );
+}
+
+/** Full-bleed section background photo with a colour tint on top so text stays readable. Loads lazily. */
+export function SectionBackground({ src, tintClass }: { src: string; tintClass: string }) {
+    return (
+        <>
+            <img
+                src={src}
+                srcSet={srcSetFor(src)}
+                sizes="100vw"
+                alt=""
+                aria-hidden
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 -z-10 size-full object-cover"
+            />
+            <div aria-hidden className={cn('absolute inset-0 -z-10', tintClass)} />
+        </>
     );
 }
 

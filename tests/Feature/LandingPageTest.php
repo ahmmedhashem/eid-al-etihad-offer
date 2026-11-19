@@ -179,6 +179,20 @@ class LandingPageTest extends TestCase
             ->assertSee('content="'.url('/storage/uploads/hero-en.jpg').'"', false);
     }
 
+    public function test_plots_background_photo_is_shared_and_only_accepts_uploads(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $en = LandingContent::get('en');
+        $en['plots']['image'] = '/storage/uploads/plots-bg-2560w.webp';
+        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasNoErrors();
+        $this->assertSame('/storage/uploads/plots-bg-2560w.webp', LandingContent::get('ar')['plots']['image']);
+        $this->get('/')->assertInertia(fn (Assert $p) => $p->where('content.plots.image', '/storage/uploads/plots-bg-2560w.webp'));
+
+        $en['plots']['image'] = 'https://evil.example/bg.jpg';
+        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasErrors('content.plots.image');
+    }
+
     public function test_lead_form_section_cannot_be_hidden(): void
     {
         $this->actingAs(User::factory()->create());

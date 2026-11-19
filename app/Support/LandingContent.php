@@ -33,7 +33,7 @@ class LandingContent
         'brand.logo', 'brand.phone', 'brand.email', 'brand.license_no',
         'campaign.offer_ends_at', 'campaign.show_countdown', 'campaign.cobrand_logo',
         'seo.og_image', 'tracking', 'notifications',
-        'project.image', 'gallery.images',
+        'project.image', 'plots.image', 'gallery.images',
         'location.map_embed_url', 'location.map_link',
         'experience.projects.*.image', 'amenities.items.*.icon', 'payment.plans.*.highlight',
         'sections',
@@ -300,6 +300,7 @@ class LandingContent
                     ['name' => 'تاون هاوس', 'description' => 'قطع مخصصة لبناء وحدات تاون هاوس.', 'area' => '160 م²', 'permit' => 'G+2', 'count' => '[عدد]'],
                 ],
                 'cta_label' => 'اطلب أسعار هذه القطع',
+                'image' => null, // optional section background photo (shared by both languages)
             ],
             'payment' => [
                 'eyebrow' => 'خطة الدفع',

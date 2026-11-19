@@ -13,6 +13,7 @@ import {
     FORM_ANCHOR,
     Lines,
     Section,
+    SectionBackground,
     SectionHeading,
     TRACKING_IDS,
     goToForm,
@@ -331,12 +332,19 @@ export function Plots({ content }: P) {
     const p = content.plots;
     const { ui } = useLandingI18n();
     return (
-        <Section id="plots" className="bg-slate">
+        <Section id="plots" className="bg-slate" background={p.image ? <SectionBackground src={p.image} tintClass="bg-slate/85" /> : undefined}>
             <div className="flex flex-col gap-10">
                 <SectionHeading eyebrow={p.eyebrow} title={p.title} subtitle={p.subtitle} light />
                 <div className="grid gap-6 md:grid-cols-2">
                     {p.items.map((it, i) => (
-                        <article key={i} className="flex flex-col gap-5 rounded-[18px] border border-white/15 bg-white/[0.06] p-8 sm:p-10">
+                        <article
+                            key={i}
+                            className={cn(
+                                'flex flex-col gap-5 rounded-[18px] border border-white/15 p-8 sm:p-10',
+                                // Over a photo the cards get a solid tint so small text keeps its contrast.
+                                p.image ? 'bg-slate/80 backdrop-blur-sm' : 'bg-white/[0.06]',
+                            )}
+                        >
                             <h3 className="text-ochre text-[32px] leading-tight font-extrabold">{it.name}</h3>
                             <p className="text-[17px] text-white">{it.description}</p>
                             <dl className="flex flex-col">

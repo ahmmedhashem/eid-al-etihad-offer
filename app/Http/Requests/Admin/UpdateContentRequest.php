@@ -39,6 +39,7 @@ class UpdateContentRequest extends FormRequest
             'content.seo.og_image' => $image,
             'content.hero.image' => $image,
             'content.project.image' => $image,
+            'content.plots.image' => $image,
             'content.gallery.images' => ['array', 'max:24'],
             'content.gallery.images.*.url' => ['required', ...array_slice($image, 1)],
             'content.gallery.images.*.alt' => ['nullable', 'string', 'max:200'],

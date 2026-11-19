@@ -42,6 +42,7 @@ export interface LandingContent {
         subtitle: string;
         items: { name: string; description: string; area: string; permit: string; count: string }[];
         cta_label: string;
+        image: string | null;
     };
     payment: {
         eyebrow: string;

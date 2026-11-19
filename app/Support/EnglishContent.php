@@ -80,6 +80,7 @@ class EnglishContent
                     ['name' => 'Townhouse', 'description' => 'Plots dedicated to building townhouse units.', 'area' => 'From 160 m²', 'permit' => 'G+2', 'count' => '[number]'],
                 ],
                 'cta_label' => 'Request prices for these plots',
+                'image' => null,
             ],
             'payment' => [
                 'eyebrow' => 'Payment plan',
