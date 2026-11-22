@@ -30,7 +30,7 @@ class LandingContent
 
     /** Language-independent values. "*" matches every item of a list (copied by position). */
     public const SHARED = [
-        'brand.logo', 'brand.phone', 'brand.email', 'brand.license_no',
+        'brand.logo', 'brand.logo_footer', 'brand.phone', 'brand.email', 'brand.license_no',
         'campaign.offer_ends_at', 'campaign.show_countdown', 'campaign.cobrand_logo',
         'seo.og_image',
         'project.image', 'plots.image', 'gallery.images',
@@ -40,7 +40,7 @@ class LandingContent
     ];
 
     /** Fields that are legitimately null when empty; every other empty value is stored as "". */
-    private const NULLABLE_KEYS = ['logo', 'cobrand_logo', 'og_image', 'image', 'image_mobile', 'url', 'offer_ends_at'];
+    private const NULLABLE_KEYS = ['logo', 'logo_footer', 'cobrand_logo', 'og_image', 'image', 'image_mobile', 'url', 'offer_ends_at'];
 
     public static function get(string $locale = 'ar'): array
     {
@@ -242,6 +242,7 @@ class LandingContent
                 'name' => 'الراسخون للعقارات',
                 'name_en' => 'AL RASIKHOON REAL ESTATE',
                 'logo' => null,
+                'logo_footer' => null,
                 'phone' => '+971 6 000 0000',
                 'email' => '',
                 'address' => '[عنوان المكتب]، عجمان',

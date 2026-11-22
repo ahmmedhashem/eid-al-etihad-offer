@@ -14,7 +14,7 @@ export type SectionKey =
 export type AmenityIcon = 'store' | 'bag' | 'clinic' | 'mosque' | 'tree' | 'school' | 'gym' | 'parking' | 'road' | 'shield';
 
 export interface LandingContent {
-    brand: { name: string; name_en: string; logo: string | null; phone: string; email: string; address: string; license_no: string };
+    brand: { name: string; name_en: string; logo: string | null; logo_footer?: string | null; phone: string; email: string; address: string; license_no: string };
     seo: { title: string; description: string; og_image: string | null };
     campaign: { badge: string; offer_ends_at: string | null; show_countdown: boolean; cobrand_logo: string | null };
     hero: {

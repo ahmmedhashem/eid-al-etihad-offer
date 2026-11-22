@@ -54,7 +54,17 @@ const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 function BrandLogo({ content, light }: P & { light?: boolean }) {
     const b = content.brand;
-    if (b.logo) return <img src={b.logo} alt={b.name} className="h-10 w-auto sm:h-11" />;
+    if (light && b.logo_footer)
+        return <img src={b.logo_footer} alt={b.name} className="h-12 w-auto max-w-full self-start object-contain sm:h-14" />;
+    if (b.logo)
+        return light ? (
+            // Dark-text logo on the dark footer: sit it on a light plate so it stays readable.
+            <span className="bg-cream inline-flex self-start rounded-xl px-4 py-2.5">
+                <img src={b.logo} alt={b.name} className="h-10 w-auto max-w-full object-contain sm:h-11" />
+            </span>
+        ) : (
+            <img src={b.logo} alt={b.name} className="h-10 w-auto max-w-full shrink-0 object-contain sm:h-11" />
+        );
     return (
         <div className="flex flex-col leading-tight">
             <span className={cn('text-lg font-extrabold whitespace-nowrap sm:text-[22px]', light ? 'text-white' : 'text-ink')}>{b.name}</span>

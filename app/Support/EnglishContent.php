@@ -15,6 +15,7 @@ class EnglishContent
                 'name' => 'Al Rasikhoon Real Estate',
                 'name_en' => 'الراسخون للعقارات',
                 'logo' => null,
+                'logo_footer' => null,
                 'phone' => '+971 6 000 0000',
                 'email' => '',
                 'address' => '[Office address], Ajman',

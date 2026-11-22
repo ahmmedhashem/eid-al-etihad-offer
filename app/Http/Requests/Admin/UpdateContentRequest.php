@@ -30,6 +30,7 @@ class UpdateContentRequest extends FormRequest
             'content.campaign.show_countdown' => ['boolean'],
 
             'content.brand.logo' => $image,
+            'content.brand.logo_footer' => $image,
             'content.campaign.cobrand_logo' => $image,
             'content.seo.og_image' => $image,
             'content.hero.image' => $image,
