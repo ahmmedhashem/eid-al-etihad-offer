@@ -30,6 +30,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     Route::get('integrations', [IntegrationController::class, 'edit'])->name('admin.integrations.edit');
     Route::put('integrations', [IntegrationController::class, 'update'])->name('admin.integrations.update');
+    Route::put('integrations/tracking', [IntegrationController::class, 'updateTracking'])->name('admin.integrations.tracking');
     Route::post('integrations/test', [IntegrationController::class, 'test'])->middleware('throttle:10,1')->name('admin.integrations.test');
 
     Route::get('content', [ContentController::class, 'edit'])->name('admin.content.edit');

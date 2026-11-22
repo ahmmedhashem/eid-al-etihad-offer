@@ -32,7 +32,7 @@ class LandingContent
     public const SHARED = [
         'brand.logo', 'brand.phone', 'brand.email', 'brand.license_no',
         'campaign.offer_ends_at', 'campaign.show_countdown', 'campaign.cobrand_logo',
-        'seo.og_image', 'tracking', 'notifications',
+        'seo.og_image',
         'project.image', 'plots.image', 'gallery.images',
         'location.map_embed_url', 'location.map_link',
         'experience.projects.*.image', 'amenities.items.*.icon', 'payment.plans.*.highlight',
@@ -85,13 +85,20 @@ class LandingContent
         return self::get($locale);
     }
 
-    /** Content safe to send to the public page (drops internal-only keys). */
+    /** Content for the public page. Tracking IDs and lead alerts live in TrackingSettings. */
     public static function forPublic(string $locale = 'ar'): array
     {
-        $content = self::get($locale);
-        unset($content['notifications']);
+        return self::get($locale);
+    }
 
-        return $content;
+    /**
+     * Fingerprint of everything stored for both languages. The editor sends back the version it loaded,
+     * and a save is refused if the content changed since — so an older browser tab (or another admin)
+     * can't silently overwrite newer changes, including the fields shared by both languages.
+     */
+    public static function version(): string
+    {
+        return md5(json_encode([self::stored('ar'), self::stored('en')]));
     }
 
     public static function defaults(string $locale = 'ar'): array
@@ -244,15 +251,6 @@ class LandingContent
                 'title' => 'قطع أراضي على طريق مليحة بدون دفعة أولى | الراسخون للعقارات',
                 'description' => 'قطع سكنية استثمارية وتاون هاوس بتصريح G+2 في الشارقة. خصم 35% عند الدفع كاش أو أقساط مباشرة مع المطوّر بدون بنك — عروض عيد الاتحاد.',
                 'og_image' => null,
-            ],
-            'tracking' => [
-                'gtm_id' => '',
-                'meta_pixel_id' => '',
-                'tiktok_pixel_id' => '',
-                'snap_pixel_id' => '',
-            ],
-            'notifications' => [
-                'email' => '',
             ],
             'campaign' => [
                 'badge' => 'عروض عيد الاتحاد 55  •  لفترة محدودة',

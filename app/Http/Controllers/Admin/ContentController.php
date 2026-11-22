@@ -21,6 +21,7 @@ class ContentController extends Controller
         return Inertia::render('admin/content', [
             'locale' => $locale,
             'content' => LandingContent::get($locale),
+            'version' => LandingContent::version(),
             'sharedPaths' => LandingContent::SHARED,
             'sectionKeys' => LandingContent::SECTION_KEYS,
             'alwaysOn' => LandingContent::ALWAYS_ON,
@@ -33,6 +34,9 @@ class ContentController extends Controller
         // validated() would only return the keys that have explicit rules, dropping plain text fields.
         // The whole document has passed validation; LandingContent::save() discards unknown keys.
         $locale = $request->validated('locale');
+        if ($request->validated('version') !== LandingContent::version()) {
+            return back()->withErrors(['version' => 'The content was changed in another tab, the other language, or by another admin since you opened this page. Nothing was saved, so nothing was overwritten. Copy your changes, reload the page, and save again.']);
+        }
         LandingContent::save($request->input('content'), $locale);
 
         return back()->with('success', ($locale === 'en' ? 'English' : 'Arabic').' content saved.');

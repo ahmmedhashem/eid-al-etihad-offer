@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendLeadToZapier;
 use App\Models\Lead;
 use App\Models\Setting;
+use App\Support\TrackingSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -19,6 +21,7 @@ class IntegrationController extends Controller
     {
         return Inertia::render('admin/integrations', [
             'zapier' => Setting::zapier(),
+            'tracking' => TrackingSettings::get(),
             'stats' => [
                 'sent' => Lead::where('zapier_status', 'sent')->count(),
                 'failed' => Lead::where('zapier_status', 'failed')->count(),
@@ -41,6 +44,17 @@ class IntegrationController extends Controller
         Setting::putZapier($validated['webhook_url'] ?? null, $request->boolean('enabled'));
 
         return back()->with('success', 'Zapier settings saved.');
+    }
+
+    /** Ad pixels + lead-alert email: their own form, so page-content saves can never wipe them. */
+    public function updateTracking(Request $request): RedirectResponse
+    {
+        $input = TrackingSettings::normalize($request->only(TrackingSettings::FIELDS));
+        $validated = Validator::make($input, TrackingSettings::rules(), TrackingSettings::messages())->validate();
+
+        TrackingSettings::save($validated);
+
+        return back()->with('success', 'Tracking settings saved.');
     }
 
     public function test(Request $request): RedirectResponse

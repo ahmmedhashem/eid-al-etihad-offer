@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { LandingContent } from '@/landing/types';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ExternalLink, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -376,7 +376,7 @@ function buildTabs(amenityIcons: string[]): { key: string; title: string; fields
         },
         {
             key: 'seo',
-            title: 'SEO, pixels & alerts',
+            title: 'SEO & sharing',
             fields: [
                 { type: 'text', key: 'seo.title', label: 'Page title (Google & share previews)' },
                 { type: 'textarea', key: 'seo.description', label: 'Meta description' },
@@ -387,38 +387,6 @@ function buildTabs(amenityIcons: string[]): { key: string; title: string; fields
                     label: 'Share image',
                     size: { w: 1200, h: 630, note: 'the standard size for WhatsApp, Facebook and X previews' },
                     help: 'Shown when the link is shared on WhatsApp, Facebook, X…',
-                },
-                { type: 'text', key: 'tracking.gtm_id', shared: true, label: 'Google Tag Manager ID', help: 'e.g. GTM-ABC1234', ltr: true },
-                {
-                    type: 'text',
-                    key: 'tracking.meta_pixel_id',
-                    shared: true,
-                    label: 'Meta (Facebook/Instagram) Pixel ID',
-                    help: 'Digits only. Fires PageView and Lead.',
-                    ltr: true,
-                },
-                {
-                    type: 'text',
-                    key: 'tracking.tiktok_pixel_id',
-                    shared: true,
-                    label: 'TikTok Pixel ID',
-                    help: 'Fires page and SubmitForm.',
-                    ltr: true,
-                },
-                {
-                    type: 'text',
-                    key: 'tracking.snap_pixel_id',
-                    shared: true,
-                    label: 'Snapchat Pixel ID',
-                    help: 'Fires PAGE_VIEW and SIGN_UP.',
-                    ltr: true,
-                },
-                {
-                    type: 'email',
-                    key: 'notifications.email',
-                    shared: true,
-                    label: 'Email new leads to',
-                    help: 'Leave empty to disable. Needs mail settings in .env (MAIL_*).',
                 },
             ],
         },
@@ -443,12 +411,14 @@ const LOCALE_NAMES: Record<Locale, string> = { ar: 'العربية', en: 'Englis
 interface Props {
     locale: Locale;
     content: LandingContent;
+    /** Fingerprint of the stored content when this page loaded; a save is refused if it changed since. */
+    version: string;
     sectionKeys: string[];
     alwaysOn: string[];
     amenityIcons: string[];
 }
 
-export default function ContentEditor({ locale, content: initial, amenityIcons, alwaysOn }: Props) {
+export default function ContentEditor({ locale, content: initial, version, amenityIcons, alwaysOn }: Props) {
     const { errors, flash } = usePage<{ errors: Record<string, string>; flash: { success?: string } }>().props;
     const tabs = useMemo(() => buildTabs(amenityIcons), [amenityIcons]);
     const [content, setContent] = useState<LandingContent>(initial);
@@ -482,7 +452,7 @@ export default function ContentEditor({ locale, content: initial, amenityIcons, 
         router.put(
             '/dashboard/content',
             // Inertia's payload type doesn't model nested unknown objects; the shape is validated server-side.
-            { locale, content: content as never },
+            { locale, version, content: content as never },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -583,7 +553,9 @@ export default function ContentEditor({ locale, content: initial, amenityIcons, 
                                 const owner = tabs.find((t) => t.fields.some((f) => path === f.key || path.startsWith(`${f.key}.`)));
                                 return (
                                     <li key={key}>
-                                        {owner ? (
+                                        {key === 'version' ? (
+                                            <span className="font-medium">Newer changes exist</span>
+                                        ) : owner ? (
                                             <button
                                                 type="button"
                                                 className="font-medium underline underline-offset-2"
@@ -716,6 +688,15 @@ export default function ContentEditor({ locale, content: initial, amenityIcons, 
                                         <h2 className="font-semibold">
                                             {active.title} <span className="text-muted-foreground font-normal">· {LOCALE_NAMES[locale]}</span>
                                         </h2>
+                                        {active.key === 'seo' && (
+                                            <p className="bg-muted/50 rounded-lg border p-3 text-sm">
+                                                Ad pixels (Google Tag Manager, Meta, TikTok, Snapchat) and the new-lead email are on the{' '}
+                                                <Link href="/dashboard/integrations" className="font-medium underline underline-offset-2">
+                                                    Integrations
+                                                </Link>{' '}
+                                                page.
+                                            </p>
+                                        )}
                                         {active.fields.map((f) => (
                                             <Field
                                                 key={f.key}

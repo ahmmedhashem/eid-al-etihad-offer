@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\LandingContent;
+use App\Support\TrackingSettings;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,7 +38,7 @@ class LandingController extends Controller
                     'locale' => $locale,
                     'alternates' => $alternates,
                     'seo' => $content['seo'],
-                    'tracking' => $content['tracking'],
+                    'tracking' => TrackingSettings::get(),
                     'og_image' => $content['seo']['og_image'] ?: $content['hero']['image'],
                     'hero_image' => $content['hero']['image'],
                     'hero_image_mobile' => $content['hero']['image_mobile'],

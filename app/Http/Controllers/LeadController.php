@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\SendLeadToZapier;
 use App\Models\Lead;
 use App\Support\LandingContent;
+use App\Support\TrackingSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,7 @@ class LeadController extends Controller
         // Sent after the response so the visitor never waits on Zapier.
         SendLeadToZapier::dispatchAfterResponse($lead);
 
-        $notify = $content['notifications']['email'] ?? '';
+        $notify = TrackingSettings::get()['lead_alert_email'];
         if ($notify && filter_var($notify, FILTER_VALIDATE_EMAIL)) {
             try {
                 Mail::raw(

@@ -79,7 +79,8 @@ bash /home/alrasikhoon/eid-al-etihad-offer/deploy.sh
 | --- | --- |
 | **Overview** | Leads today / 7 days / total, leads per day, sources, status breakdown, offer countdown |
 | **Leads** | Search and filter (status, source, dates), change status, add notes, delete, export CSV (opens correctly in Excel with Arabic) |
-| **Page content** | Every text, list and image on the page; section order and show/hide; offer end date and countdown; co-branding logo; SEO and share image; GTM / Meta / TikTok / Snap pixels |
+| **Page content** | Every text, list and image on the page; section order and show/hide; offer end date and countdown; co-branding logo; SEO and share image |
+| **Integrations** | GTM / Meta / TikTok / Snap pixel IDs and the new-lead email (their own form, so content saves can't change them); Zapier |
 
 The editor warns about any `[placeholder]` text still visible to visitors.
 
@@ -87,6 +88,7 @@ The editor warns about any `[placeholder]` text still visible to visitors.
 
 - Each language has its own text, edited with the **العربية / English** toggle in **Page content**.
 - The **hero photo is per language** (upload an Arabic and an English version).
+- Saves are protected against out-of-date tabs. If the content changed since a page was opened (another tab, the other language, or another admin), the save is refused with a message instead of overwriting newer changes.
 - Fields marked **Shared** are set once for both pages: other photos, logos, phone, email, licence, offer date, countdown, map, pixels, lead-alert email, amenity icons, plan highlight and section order. Arabic stores the shared values; editing them from the English editor updates Arabic too.
 - Each lead records its page language (`ar` / `en`), shown as a badge in **Leads**, filterable, and included in the CSV.
 - The page tells Google the two versions are translations (`hreflang`), and English uses the guideline English fonts (Oswald headings, Noto Sans text).
@@ -110,7 +112,7 @@ The editor warns about any `[placeholder]` text still visible to visitors.
 
 ## Tracking with Google Tag Manager
 
-Add the GTM container ID under **Dashboard → Page content → SEO, pixels & alerts**. The page then sends these to GTM:
+Add the GTM container ID under **Dashboard → Integrations → Tracking pixels & lead alerts**. The page then sends these to GTM:
 
 | What | Element ID | dataLayer event | Extra fields |
 | --- | --- | --- | --- |

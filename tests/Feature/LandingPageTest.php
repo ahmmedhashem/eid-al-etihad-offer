@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Lead;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\LandingContent;
+use App\Support\TrackingSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -40,9 +42,7 @@ class LandingPageTest extends TestCase
     {
         $this->get('/')->assertDontSee('fbevents.js', false);
 
-        $content = LandingContent::get();
-        $content['tracking']['meta_pixel_id'] = '1234567890';
-        LandingContent::save($content);
+        TrackingSettings::save(['meta_pixel_id' => '1234567890']);
 
         $this->get('/')->assertSee("fbq('init','1234567890')", false);
     }
@@ -98,7 +98,7 @@ class LandingPageTest extends TestCase
         $en['hero']['title'] = 'English headline';
         $en['brand']['phone'] = '+971 6 123 4567';                       // shared
         $en['sections'][0]['enabled'] = false;                            // shared
-        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'en', 'version' => LandingContent::version(), 'content' => $en])->assertSessionHasNoErrors();
 
         $ar = LandingContent::get('ar');
         $this->assertNotSame('English headline', $ar['hero']['title']);   // text stays per language
@@ -106,7 +106,7 @@ class LandingPageTest extends TestCase
         $this->assertFalse($ar['sections'][0]['enabled']);
 
         $ar['campaign']['offer_ends_at'] = '2027-01-15';
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $ar])->assertSessionHasNoErrors();
         $this->assertSame('2027-01-15', LandingContent::get('en')['campaign']['offer_ends_at']);
         $this->assertSame('English headline', LandingContent::get('en')['hero']['title']);
     }
@@ -152,7 +152,7 @@ class LandingPageTest extends TestCase
         $content['hero']['cta_label'] = 'زر جديد';
         $content['brand']['email'] = ''; // empty inputs become null in Laravel — must be stored as ''
 
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $content])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $content])->assertSessionHasNoErrors();
 
         $saved = LandingContent::get();
         $this->assertSame('زر جديد', $saved['hero']['cta_label']);
@@ -166,12 +166,12 @@ class LandingPageTest extends TestCase
 
         $ar = LandingContent::get('ar');
         $ar['hero']['image'] = '/storage/uploads/hero-ar.jpg';
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $ar])->assertSessionHasNoErrors();
 
         $en = LandingContent::get('en');
         $this->assertNull($en['hero']['image']); // not copied from Arabic
         $en['hero']['image'] = '/storage/uploads/hero-en.jpg';
-        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'en', 'version' => LandingContent::version(), 'content' => $en])->assertSessionHasNoErrors();
 
         $this->get('/')->assertInertia(fn (Assert $p) => $p->where('content.hero.image', '/storage/uploads/hero-ar.jpg'))
             ->assertSee('content="'.url('/storage/uploads/hero-ar.jpg').'"', false); // share image follows the language
@@ -185,41 +185,79 @@ class LandingPageTest extends TestCase
 
         $en = LandingContent::get('en');
         $en['plots']['image'] = '/storage/uploads/plots-bg-2560w.webp';
-        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'en', 'version' => LandingContent::version(), 'content' => $en])->assertSessionHasNoErrors();
         $this->assertSame('/storage/uploads/plots-bg-2560w.webp', LandingContent::get('ar')['plots']['image']);
         $this->get('/')->assertInertia(fn (Assert $p) => $p->where('content.plots.image', '/storage/uploads/plots-bg-2560w.webp'));
 
         $en['plots']['image'] = 'https://evil.example/bg.jpg';
-        $this->put('/dashboard/content', ['locale' => 'en', 'content' => $en])->assertSessionHasErrors('content.plots.image');
+        $this->put('/dashboard/content', ['locale' => 'en', 'version' => LandingContent::version(), 'content' => $en])->assertSessionHasErrors('content.plots.image');
     }
 
     public function test_pasted_tracking_ids_are_cleaned_up_before_saving(): void
     {
         $this->actingAs(User::factory()->create());
-        $save = function (array $tracking) {
-            $content = LandingContent::get();
-            $content['tracking'] = array_merge($content['tracking'], $tracking);
-
-            return $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $content]);
-        };
+        $save = fn (array $values) => $this->put('/dashboard/integrations/tracking', $values);
 
         // lowercase + spaces
         $save(['gtm_id' => '  gtm-abc1234 '])->assertSessionHasNoErrors();
-        $this->assertSame('GTM-ABC1234', LandingContent::get()['tracking']['gtm_id']);
+        $this->assertSame('GTM-ABC1234', TrackingSettings::get()['gtm_id']);
 
         // Google's full installation snippet, Meta's full pixel snippet
         $gtmSnippet = "<!-- Google Tag Manager --><script>(function(w,d,s,l,i){w[l]=w[l]||[];})(window,document,'script','dataLayer','GTM-XYZ9876');</script>";
         $metaSnippet = "<script>!function(f,b,e,v,n,t,s){n.version='2.0';}(window);fbq('init', '123456789012345');fbq('track', 'PageView');</script>";
         $save(['gtm_id' => $gtmSnippet, 'meta_pixel_id' => $metaSnippet])->assertSessionHasNoErrors();
-        $tracking = LandingContent::get()['tracking'];
-        $this->assertSame('GTM-XYZ9876', $tracking['gtm_id']);
-        $this->assertSame('123456789012345', $tracking['meta_pixel_id']);
+        $this->assertSame('GTM-XYZ9876', TrackingSettings::get()['gtm_id']);
+        $this->assertSame('123456789012345', TrackingSettings::get()['meta_pixel_id']);
 
         // Saved IDs reach the page on both languages
         $this->get('/en')->assertSee("'dataLayer','GTM-XYZ9876'", false)->assertSee("fbq('init','123456789012345')", false);
+        $this->get('/')->assertSee("'dataLayer','GTM-XYZ9876'", false);
 
-        // Something that isn't an ID at all is still refused
-        $save(['gtm_id' => 'my container'])->assertSessionHasErrors('content.tracking.gtm_id');
+        // Values that would break out of the script tag, or aren't an ID at all, are refused
+        $save(['gtm_id' => 'my container'])->assertSessionHasErrors('gtm_id');
+        $save(['gtm_id' => "GTM-1');alert(1);//"])->assertSessionHasErrors('gtm_id');
+    }
+
+    public function test_saving_page_content_never_touches_tracking_settings(): void
+    {
+        $this->actingAs(User::factory()->create());
+        TrackingSettings::save(['gtm_id' => 'GTM-KEEP123', 'lead_alert_email' => 'sales@example.com']);
+
+        $ar = LandingContent::get('ar');
+        $ar['hero']['cta_label'] = 'زر';
+        $ar['tracking'] = ['gtm_id' => '']; // an old editor tab would still send this
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $ar])->assertSessionHasNoErrors();
+
+        $this->assertSame('GTM-KEEP123', TrackingSettings::get()['gtm_id']);
+        $this->assertSame('sales@example.com', TrackingSettings::get()['lead_alert_email']);
+    }
+
+    public function test_a_save_from_an_out_of_date_tab_is_refused_instead_of_overwriting(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $versionWhenTabOpened = LandingContent::version();
+
+        // Meanwhile the English editor saves a shared value…
+        $en = LandingContent::get('en');
+        $en['brand']['phone'] = '+971 6 111 1111';
+        $this->put('/dashboard/content', ['locale' => 'en', 'version' => LandingContent::version(), 'content' => $en])->assertSessionHasNoErrors();
+
+        // …then the old Arabic tab (still holding the old phone) saves.
+        $staleAr = LandingContent::defaults('ar');
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => $versionWhenTabOpened, 'content' => $staleAr])
+            ->assertSessionHasErrors('version');
+        $this->assertSame('+971 6 111 1111', LandingContent::get('ar')['brand']['phone']);
+    }
+
+    public function test_tracking_ids_saved_in_the_old_place_are_recovered(): void
+    {
+        // Before this change the IDs lived inside the page content (here only in the English copy).
+        Setting::create(['key' => 'landing_en', 'value' => ['tracking' => ['gtm_id' => 'GTM-T2RBJ9GM', 'meta_pixel_id' => ''], 'notifications' => ['email' => 'a@b.ae']]]);
+        Setting::create(['key' => 'landing', 'value' => ['tracking' => ['gtm_id' => '', 'meta_pixel_id' => '']]]);
+
+        $this->assertSame('GTM-T2RBJ9GM', TrackingSettings::get()['gtm_id']);
+        $this->assertSame('a@b.ae', TrackingSettings::get()['lead_alert_email']);
+        $this->get('/')->assertSee("'dataLayer','GTM-T2RBJ9GM'", false);
     }
 
     public function test_mobile_hero_photo_is_per_language_and_only_accepts_uploads(): void
@@ -228,13 +266,13 @@ class LandingPageTest extends TestCase
 
         $ar = LandingContent::get('ar');
         $ar['hero']['image_mobile'] = '/storage/uploads/hero-ar-m-1080w.webp';
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $ar])->assertSessionHasNoErrors();
 
         $this->assertSame('/storage/uploads/hero-ar-m-1080w.webp', LandingContent::get('ar')['hero']['image_mobile']);
         $this->assertNull(LandingContent::get('en')['hero']['image_mobile']); // not shared
 
         $ar['hero']['image_mobile'] = 'https://evil.example/x.jpg';
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $ar])->assertSessionHasErrors('content.hero.image_mobile');
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $ar])->assertSessionHasErrors('content.hero.image_mobile');
     }
 
     public function test_content_cached_before_a_new_field_existed_is_never_served(): void
@@ -254,7 +292,7 @@ class LandingPageTest extends TestCase
         $content = LandingContent::get();
         $content['sections'] = array_map(fn ($s) => ['key' => $s['key'], 'enabled' => false], $content['sections']);
 
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $content])->assertSessionHasNoErrors();
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $content])->assertSessionHasNoErrors();
 
         $sections = collect(LandingContent::get()['sections'])->keyBy('key');
         $this->assertTrue($sections['final_cta']['enabled']);
@@ -266,12 +304,11 @@ class LandingPageTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $content = LandingContent::get();
-        $content['tracking']['gtm_id'] = "GTM-1');alert(1);//";
         $content['location']['map_embed_url'] = 'javascript:alert(1)';
         $content['hero']['image'] = 'https://evil.example/x.png';
 
-        $this->put('/dashboard/content', ['locale' => 'ar', 'content' => $content])
-            ->assertSessionHasErrors(['content.tracking.gtm_id', 'content.location.map_embed_url', 'content.hero.image']);
+        $this->put('/dashboard/content', ['locale' => 'ar', 'version' => LandingContent::version(), 'content' => $content])
+            ->assertSessionHasErrors(['content.location.map_embed_url', 'content.hero.image']);
     }
 
     public function test_upload_converts_to_webp_with_responsive_copies_and_rejects_svg(): void

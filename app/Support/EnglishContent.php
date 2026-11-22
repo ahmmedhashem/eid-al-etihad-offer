@@ -25,8 +25,6 @@ class EnglishContent
                 'description' => 'Residential investment and townhouse plots with G+2 permit in Sharjah. 35% off for cash, or direct developer instalments with no bank — Eid Al Etihad offers.',
                 'og_image' => null,
             ],
-            'tracking' => ['gtm_id' => '', 'meta_pixel_id' => '', 'tiktok_pixel_id' => '', 'snap_pixel_id' => ''],
-            'notifications' => ['email' => ''],
             'campaign' => [
                 'badge' => 'Eid Al Etihad 55 offers  •  Limited time',
                 'offer_ends_at' => '2026-12-31',
