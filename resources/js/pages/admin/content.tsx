@@ -1,8 +1,8 @@
 import { EditorDir, Field, SharedBadge, getPath, setPath, type FieldDef } from '@/admin/fields';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import type { LandingContent } from '@/landing/types';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
@@ -393,6 +393,21 @@ function buildTabs(amenityIcons: string[]): { key: string; title: string; fields
     ];
 }
 
+/** Which page section each editor tab controls (for the show/hide toggle). */
+const TAB_SECTION: Record<string, string> = {
+    stats: 'trust',
+    offers: 'offers',
+    project: 'project',
+    plots: 'plots',
+    payment: 'payment',
+    gallery: 'gallery',
+    amenities: 'amenities',
+    location: 'location',
+    experience: 'experience',
+    form: 'final_cta',
+    faq: 'faq',
+};
+
 /** Laravel turns empty strings into null, so compare the two as equal when checking for unsaved changes. */
 const snapshot = (o: unknown) => JSON.stringify(o, (_k, v) => (v === '' ? null : v));
 
@@ -488,6 +503,10 @@ export default function ContentEditor({ locale, content: initial, version, ameni
         [next[i], next[i + d]] = [next[i + d], next[i]];
         setContent({ ...content, sections: next });
     };
+
+    const isHidden = (sectionKey?: string) => !!sectionKey && content.sections.find((x) => x.key === sectionKey)?.enabled === false;
+    const setSectionVisible = (sectionKey: string, visible: boolean) =>
+        setContent((c) => ({ ...c, sections: c.sections.map((x) => (x.key === sectionKey ? { ...x, enabled: visible } : x)) }));
 
     const tabErrorCount = (t: { fields: FieldDef[] }) =>
         Object.keys(errors).filter((k) => {
@@ -605,14 +624,20 @@ export default function ContentEditor({ locale, content: initial, version, ameni
                                     type="button"
                                     onClick={() => {
                                         setTab(t.key);
-                                        history.replaceState(null, '', `#${t.key}`);
+                                        // Keep Inertia's page state in history.state — replacing it with null breaks the next save.
+                                        history.replaceState(history.state, '', `#${t.key}`);
                                     }}
                                     className={cn(
                                         'flex shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm whitespace-nowrap transition-colors',
                                         tab === t.key ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                                     )}
                                 >
-                                    {t.title}
+                                    <span className={cn(isHidden(TAB_SECTION[t.key]) && 'line-through opacity-60')}>{t.title}</span>
+                                    {isHidden(TAB_SECTION[t.key]) && (
+                                        <span className="bg-muted text-muted-foreground rounded px-1.5 text-[10px] font-semibold uppercase">
+                                            Hidden
+                                        </span>
+                                    )}
                                     {errs > 0 && <span className="bg-destructive rounded-full px-1.5 text-[11px] text-white">{errs}</span>}
                                 </button>
                             );
@@ -626,26 +651,20 @@ export default function ContentEditor({ locale, content: initial, version, ameni
                                     <div>
                                         <h2 className="font-semibold">Section order & visibility</h2>
                                         <p className="text-muted-foreground text-sm">
-                                            The header, hero form and footer are always shown. Untick a section to hide it. Order and visibility apply
-                                            to both languages.
+                                            The header, hero and footer are always shown. Switch a section off to hide it from the page. Order and
+                                            visibility apply to both languages, and take effect when you click Save changes.
                                             <SharedBadge />
                                         </p>
                                     </div>
                                     <ul className="flex flex-col gap-2">
                                         {content.sections.map((s, i) => (
                                             <li key={s.key} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                                                <label className="flex items-center gap-3 text-sm">
-                                                    <Checkbox
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Switch
                                                         checked={s.enabled}
                                                         disabled={alwaysOn.includes(s.key)}
-                                                        onCheckedChange={(c) =>
-                                                            setContent({
-                                                                ...content,
-                                                                sections: content.sections.map((x, j) =>
-                                                                    j === i ? { ...x, enabled: c === true } : x,
-                                                                ),
-                                                            })
-                                                        }
+                                                        label={`Show ${SECTION_NAMES[s.key] ?? s.key}`}
+                                                        onCheckedChange={(v) => setSectionVisible(s.key, v)}
                                                     />
                                                     <span className={cn(!s.enabled && 'text-muted-foreground line-through')}>
                                                         {SECTION_NAMES[s.key] ?? s.key}
@@ -655,7 +674,7 @@ export default function ContentEditor({ locale, content: initial, version, ameni
                                                             Always shown — every button scrolls to this form
                                                         </span>
                                                     )}
-                                                </label>
+                                                </div>
                                                 <div className="flex gap-1">
                                                     <Button
                                                         variant="ghost"
@@ -688,6 +707,35 @@ export default function ContentEditor({ locale, content: initial, version, ameni
                                         <h2 className="font-semibold">
                                             {active.title} <span className="text-muted-foreground font-normal">· {LOCALE_NAMES[locale]}</span>
                                         </h2>
+                                        {TAB_SECTION[active.key] && (
+                                            <div
+                                                className={cn(
+                                                    'flex items-center justify-between gap-4 rounded-lg border p-3',
+                                                    isHidden(TAB_SECTION[active.key]) &&
+                                                        'border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10',
+                                                )}
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-medium">
+                                                        {isHidden(TAB_SECTION[active.key])
+                                                            ? 'This section is hidden from the page'
+                                                            : 'Show this section on the page'}
+                                                        <SharedBadge />
+                                                    </p>
+                                                    <p className="text-muted-foreground text-xs">
+                                                        {alwaysOn.includes(TAB_SECTION[active.key])
+                                                            ? 'Always shown — every button on the page scrolls to this form.'
+                                                            : 'Applies to both languages. Click Save changes to publish.'}
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    checked={!isHidden(TAB_SECTION[active.key])}
+                                                    disabled={alwaysOn.includes(TAB_SECTION[active.key])}
+                                                    label="Show this section on the page"
+                                                    onCheckedChange={(v) => setSectionVisible(TAB_SECTION[active.key], v)}
+                                                />
+                                            </div>
+                                        )}
                                         {active.key === 'seo' && (
                                             <p className="bg-muted/50 rounded-lg border p-3 text-sm">
                                                 Ad pixels (Google Tag Manager, Meta, TikTok, Snapchat) and the new-lead email are on the{' '}
