@@ -117,6 +117,14 @@ class LandingPageTest extends TestCase
         $this->assertSame(0, Lead::count());
     }
 
+    public function test_phone_typed_with_arabic_digits_is_accepted_and_stored_in_latin_digits(): void
+    {
+        $this->post('/leads', ['name' => 'محمد علي', 'phone' => '+971 ٠٥٠ ١٢٣ ٤٥٦٧'])->assertSessionHas('lead_submitted', true);
+        $this->post('/leads', ['name' => 'سارة أحمد', 'phone' => '۰۵۵۹۸۷۶۵۴۳'])->assertSessionHas('lead_submitted', true);
+
+        $this->assertSame(['+971 50 123 4567', '0559876543'], Lead::orderBy('id')->pluck('phone')->all());
+    }
+
     public function test_honeypot_submissions_are_silently_dropped(): void
     {
         $this->post('/leads', ['name' => 'Bot', 'phone' => '+971501234567', 'website' => 'spam.example'])

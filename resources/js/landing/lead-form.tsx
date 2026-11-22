@@ -56,6 +56,22 @@ function fireLeadEvents(location: string, language: string) {
     window.dataLayer?.push({ event: 'lead_submitted', form_location: location, language });
 }
 
+/**
+ * Phone input clean-up as the visitor types: Arabic-Indic (٠-٩) and Persian (۰-۹) digits become 0-9 (an Arabic
+ * keyboard types those), Arabic punctuation becomes its Latin twin, and anything that can't be in a phone number
+ * (letters, emoji) is dropped. Keeps the field readable left-to-right and valid for the server.
+ */
+function cleanPhoneInput(value: string): string {
+    return value
+        .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+        .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+        .replace(/[\u066B\u066C\u060C]/g, ' ')
+        .replace(/\u2212|\u2013|\u2014/g, '-')
+        .replace(/[^\d+\s\-()]/g, '')
+        .replace(/(?!^)\+/g, '')
+        .slice(0, 24);
+}
+
 function Field({ label, error, children, htmlFor }: { label: string; error?: string; children: React.ReactNode; htmlFor: string }) {
     return (
         <div className="flex flex-col gap-2">
@@ -164,7 +180,7 @@ export function LeadForm({
                             inputMode="tel"
                             autoComplete="tel"
                             value={data.phone}
-                            onChange={(e) => setData('phone', e.target.value)}
+                            onChange={(e) => setData('phone', cleanPhoneInput(e.target.value))}
                             placeholder="+971 5X XXX XXXX"
                             aria-invalid={!!errors.phone}
                             required
